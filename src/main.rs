@@ -66,6 +66,7 @@ fn reference_v1() {
     // You pass references to functions by using `&` before the variable
     greet(&m1, &m2); // note the ampersands
     let s = format!("{} {}", m1, m2);
+    let mx = &m1;
     println!("Formatted `{}`", s);
 }
 
@@ -129,13 +130,82 @@ fn dereference() {
     let s_len1 = str::len(&s); // explicit reference
     let s_len2 = s.len(); // implicit reference
     assert_eq!(s_len1, s_len2);
+
+    // We cannot mutate a variable while being borrowed (i.e referenced) If the reference is accessed later
+    // Since modifying the original value may have changed the adress the pointer references
+    let mut vec: Vec<i32> = vec![1, 2, 3];
+    let num = &vec;
+    // println!("Third element is {}", num[2]); // this works
+    vec.push(4);
+    // println!("Third element is {}", num[2]); // this does not work
+}
+
+fn permissions() {
+    // A variable can have 3 permissions  :
+    // - Read : the value of the variable can be read
+    // - Write : the value of the variable can be mutated (only if used with `mut`)
+    // - Own : the value of the variable can be moved to another variable or function,
+    //         and the value can be deallocated, once the variable goes out of scope
+    // example :
+    //    let var = 1; // with RO
+    //    let mut var2 = 23; // with RWO
+    let mut vec: Vec<i32> = vec![1, 2, 3];
+
+    // references can only have two permissions, Read & Write
+    // because they don't own the value, so an assignment don't transfer ownership of the reference
+    // it just create another reference  to same value
+    let num = &vec;
+    let num2 = num;
+
+    // When a reference is created for a variable, the original variable looses Write & Own permissions,
+    // So you can't move a variable while it is being referenced
+    // let mut vec2 = vec; // this won't work
+    println!("Third element is {}", num[2]);
+    // references loose all of their permissions after the last line they are used
+
+    // Once a variable stop being referenced, it regains all its permissions
+    vec.push(4);
+    // Once a variable get moved or goes out of scope, it looses all its permissions
+    let mut vec2 = vec;
+
+    // here x have R/O permissions
+    let x = 0;
+    let mut x_ref = &x; // x_ref has R/W permissions, that means
+                        // that x_ref can be mutated (we can assign x_ref to a different reference)
+                        // but it cannot mutate the original value
+
+    let mut vec: Vec<i32> = vec![1, 2, 3];
+    // let num: &i32 = &vec[2];
+    vec.push(4);
+    // println!("Third element is {}", *num);
+
+    // When a variable is used in loop, a move happen, if you use the variable value directly
+    for val in vec {}
+    // vec.push(4); // this won't work
+
+    let mut vec: Vec<i32> = vec![1, 2, 3];
+    // When looping on a reference to variable, the variable looses its Write/Own permissions
+    // because the reference is considered as `used` in the loop
+    for val in &vec {
+        // vec.push(1); // this won't work
+        // let vec2 = vec; // this won't work
+    }
+
+    // A call to a function is also considered a "borrow"
+    borrow(&vec);
+    // A call to a method of the type that expect a reference is also considered a "borrow"
+    vec.len(); // vec.len(&self) <- this method borrow the value of `vec`
+}
+
+fn borrow(v: &Vec<i32>) {
+    //
 }
 
 fn main() {
     let mut vec: Vec<i32> = vec![1, 2, 3];
-    let num = &vec;
-    // println!("Third element is {}", num[2]); // this works
-    // We cannot mutate a variable while being borrowed (i.e referenced) If the reference is accessed later
+    // let num: &i32 = &vec[2];
     vec.push(4);
-    // println!("Third element is {}", num[2]); // this does not work
+    // println!("Third element is {}", *num);
+
+    vec.push(4);
 }
