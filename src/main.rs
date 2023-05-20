@@ -157,15 +157,15 @@ fn permissions() {
     let num = &vec;
     let num2 = num;
 
-    // When a reference is created for a variable, the original variable looses Write & Own permissions,
+    // When a reference is created for a variable, the original variable loses Write & Own permissions,
     // So you can't move a variable while it is being referenced
     // let mut vec2 = vec; // this won't work
-    println!("Third element is {}", num[2]);
-    // references loose all of their permissions after the last line they are used
+    println!("Third element is {}, {}", num[2], vec[2]);
+    // references lose all of their permissions after the last line they are used
 
     // Once a variable stop being referenced, it regains all its permissions
     vec.push(4);
-    // Once a variable get moved or goes out of scope, it looses all its permissions
+    // Once a variable get moved or goes out of scope, it loses all its permissions
     let mut vec2 = vec;
 
     // here x have R/O permissions
@@ -184,7 +184,7 @@ fn permissions() {
     // vec.push(4); // this won't work
 
     let mut vec: Vec<i32> = vec![1, 2, 3];
-    // When looping on a reference to variable, the variable looses its Write/Own permissions
+    // When looping on a reference to variable, the variable loses its Write/Own permissions
     // because the reference is considered as `used` in the loop
     for val in &vec {
         // vec.push(1); // this won't work
@@ -197,15 +197,91 @@ fn permissions() {
     vec.len(); // vec.len(&self) <- this method borrow the value of `vec`
 }
 
-fn borrow(v: &Vec<i32>) {
+fn borrow(v: &Vec<i32>) -> () {
     //
 }
 
-fn main() {
+fn mutable_references() {
+    // there exist two types of references, mutable & immutable,
+    // - immutable references are the default, they are called "shared references" and behave like `shared_ptr` from c++
+    // - mutable references, they are called "unique references" and behave like `uniq_ptr` from c++
     let mut vec: Vec<i32> = vec![1, 2, 3];
-    // let num: &i32 = &vec[2];
-    vec.push(4);
-    // println!("Third element is {}", *num);
 
-    vec.push(4);
+    // mutable references are unique in the fact that, the only reference that can exist when they are used
+    // are them
+    let num = &mut vec;
+    // let num2 = &vec; // this won't work
+
+    // However when they are reassigned to another variable, they lose all of their permissions
+    // and are considered `moved` ? 🤔, at least that's what the compiler error says
+    // let num2 = num; // this
+
+    num[2] += 1;
+
+    // when mutable references are used, the original variable loses all of its permissions (even Read)
+    // println!("Vector is now {:?}", vec); // this won't work
+    println!("Third element is {}", num[2]);
+    println!("Vector is now {:?}", vec);
+    // Like immutable references, mutable references lose all of their permissions after the
+    // last line where they are used
+    // so the original variable regains all of its permissions
+
+    vec[2] = 5;
+    // You can declare an immutable reference after the original variable regains its permissions
+    let num = &vec;
+    println!("Vector is now {:?}", num);
+
+    // When creating an immutable reference from a mutable reference,
+    // the mutable reference loses its write permissions, while the immutable reference is being used
+    let mut num = &mut vec;
+    let mut num2 = &num; // or &*num;
+    println!("num={:?}, num2={:?}", num, num2);
+    // as always, references loses their permissions after the last line where they are used
+    // and The mutable reference regains its write permissions
+    num[2] = 1;
+    // println!("Vector is now {:?}", num2); // this won't work
+
+    // NOTE :
+    // a reference's lifetime is the range of code spanning from its birth (where the reference is created)
+    // to its death (the last time(s) the reference is used).
+    // We can therefore say that a reference loses all its permissions at the end of its lifetime
+}
+
+fn ascii_capitalize(v: &mut Vec<char>) {
+    let c = &v[0];
+    // references can have different lifetimes in each branch
+    // depending on if and when they are used,
+    // in a branch, the lifetime ends at the last line where they are used
+    if c.is_ascii_lowercase() {
+        // v[0] = 'c'; // this won't work
+        let up = c.to_ascii_uppercase(); // the lifetime of `c` ends here
+                                         // v regains its permissions here
+        v[0] = up;
+    } else if c.is_alphabetic() {
+        // v regains its permissions here
+        v[0] = v[0];
+        println!("Already capitalized: {:?}", v);
+    } else {
+        // v[0] = 'c'; // this won't work
+        println!("c={c}");
+        // the lifetime of `c` ends here
+    }
+}
+
+// TODO
+fn outlive_references() {
+    let s = String::from("Hello world");
+    let s_ref = &s;
+    // drop moves the function, so a variable cannot be moved while it is being referenced
+    drop(s);
+    // println!("{}", s_ref);
+}
+
+fn first(strings: &Vec<String>) -> &String {
+    let s_ref = &strings[0];
+    return s_ref;
+}
+
+fn main() {
+    outlive_references();
 }
